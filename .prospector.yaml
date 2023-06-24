@@ -1,0 +1,16 @@
+autodetect: false
+
+ignore-paths:
+  - dist
+  - docs
+  - etc
+
+pylint:
+  disable:
+    - keyword-arg-before-vararg
+  options:
+    indent-string: "\t"
+
+pep8:
+  disable:
+    - E131
