@@ -336,7 +336,7 @@ class FTPHandler(_FTPHandler):
 		except Exception as e:
 			self.respond(f"530 Invalid username: {line!r} ({e!r}).")
 			return
-		FTPHandler.ftp_USER(self, line)
+		_FTPHandler.ftp_USER(self, line)
 
 	def ftp_RMD(self, path):
 		"""
@@ -344,7 +344,7 @@ class FTPHandler(_FTPHandler):
 		On success return the directory path, else None.
 		"""
 		_log.info("rmdir: (by %r) %r", self.username, path)
-		return FTPHandler.ftp_RMD(self, path)
+		return _FTPHandler.ftp_RMD(self, path)
 
 	def ftp_DELE(self, path):
 		"""
@@ -352,14 +352,14 @@ class FTPHandler(_FTPHandler):
 		On success return the file path, else None.
 		"""
 		_log.info("dele: (by %r) %r", self.username, path)
-		return FTPHandler.ftp_DELE(self, path)
+		return _FTPHandler.ftp_DELE(self, path)
 
 	def ftp_RNFR(self, path):
 		"""
 		Rename the specified (only the source name is specified here, see RNTO command)
 		"""
 		_log.info("rnfr: (by %r) %r", self.username, path)
-		return FTPHandler.ftp_RNFR(self, path)
+		return _FTPHandler.ftp_RNFR(self, path)
 
 	def ftp_RNTO(self, path):
 		"""
@@ -367,7 +367,7 @@ class FTPHandler(_FTPHandler):
 		On success return a (source_path, destination_path) tuple.
 		"""
 		_log.info("rnto-request: (by %r) %r", self.username, path)
-		ret = FTPHandler.ftp_RNTO(self, path)
+		ret = _FTPHandler.ftp_RNTO(self, path)
 		if ret is not None:
 			_log.info("rnto: (by %r) %r", self.username, ret)
 		return ret
