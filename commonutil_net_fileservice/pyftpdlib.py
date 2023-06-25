@@ -314,7 +314,7 @@ class FTPHandler(_FTPHandler):
 		_log.debug("got %r from remote", relfilepath)
 		if not relfilepath:
 			return
-		if not self.process_callable:
+		if not FTPHandler.process_callable:
 			return
 		try:
 			remote_location = f"{self.remote_ip}:{self.remote_port}"
@@ -322,7 +322,7 @@ class FTPHandler(_FTPHandler):
 			remote_location = f"UNKNOWN: {e!r}"
 			_log.exception("cannot have remote location (user=%r)", self.username)
 		try:
-			self.process_callable(self.username, remote_location, file, relfilepath)  # pylint: disable=not-callable)
+			FTPHandler.process_callable(self.username, remote_location, file, relfilepath)  # pylint: disable=not-callable
 		except Exception:
 			_log.exception("caught exception on invoking received file processor: user=%r, remote=%r, filename=%r, relfilepath=%r", self.username,
 							remote_location, file, relfilepath)
