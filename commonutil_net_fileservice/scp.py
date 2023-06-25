@@ -74,7 +74,7 @@ class SCPSinkHandler:
 
 	def _prepare_dirstack_folder(self):
 		p = os.path.abspath(os.path.join(self._base_folder_path, *self._dirstack))
-		if not os.path.commonpath((self._base_folder_path, p)) == self._base_folder_path:
+		if not p.startswith(self._base_folder_path):
 			_log.warning("escaped dir stack (%r): %r", self._base_folder_path, p)
 			return
 		os.makedirs(p, self._mkdirmode, exist_ok=True)
@@ -85,7 +85,7 @@ class SCPSinkHandler:
 				n,
 		]
 		p = os.path.abspath(os.path.join(self._base_folder_path, *pathcomps))
-		if not os.path.commonpath((self._base_folder_path, p)) == self._base_folder_path:
+		if not p.startswith(self._base_folder_path):
 			_log.warning("escaped file name (%r): %r", self._base_folder_path, p)
 			return None
 		fp = open(p, 'wb', opener=self._fp_opener)  # pylint: disable=consider-using-with

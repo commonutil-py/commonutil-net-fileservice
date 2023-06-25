@@ -94,7 +94,7 @@ class Authorizer:
 		"""
 		u = self.users[username]
 		wd = os.path.abspath(os.path.join(self.base_folder_path, u.username))
-		if self.base_folder_path != os.path.commonpath((self.base_folder_path, wd)):
+		if not wd.startswith(self.base_folder_path):
 			raise AuthenticationFailed(f"home folder escaped: {username!r}: {wd!r}")
 		return wd
 

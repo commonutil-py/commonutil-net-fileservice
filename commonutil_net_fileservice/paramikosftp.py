@@ -105,7 +105,7 @@ class SFTPServerImpl(paramiko.SFTPServerInterface):
 
 	def _local_path(self, remote_path: str) -> str:
 		p = os.path.abspath(os.path.join(self.user_folder_path, remote_path.strip('/\\')))
-		if os.path.commonpath((p, self.user_folder_path)) == self.user_folder_path:
+		if p.startswith(self.user_folder_path):
 			return p
 		_log.warning('escaped local path (user: %r): %r', self.user_folder_path, p)
 		return self.user_folder_path
@@ -190,7 +190,7 @@ class SFTPServerImpl(paramiko.SFTPServerInterface):
 		_log.debug("readlink: %r", path)
 		local_path = self._local_path(path)
 		realpath = os.path.realpath(local_path)
-		if os.path.commonpath((realpath, self.user_folder_path)) != self.user_folder_path:
+		if not realpath.startswith(self.user_folder_path):
 			return paramiko.SFTP_NO_SUCH_FILE
 		relatedpath = realpath[len(self.user_folder_path):]
 		return relatedpath

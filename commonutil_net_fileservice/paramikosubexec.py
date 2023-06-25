@@ -75,7 +75,7 @@ def rewrite_target_path(user_folder_path: str, target_path: str) -> str:
 		return user_folder_path
 	end_with_slash = (target_path[-1] == '/')
 	result_path = os.path.abspath(os.path.join(user_folder_path, target_path.strip('/\\')))
-	if os.path.commonpath((result_path, user_folder_path)) != user_folder_path:
+	if not result_path.startswith(user_folder_path):
 		result_path = user_folder_path
 	if end_with_slash:
 		result_path = result_path + '/'
