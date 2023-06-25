@@ -49,9 +49,9 @@ class User:
 
 	credential_checker: Callable[[User, str], bool] = _default_credential_checker
 
-	def __init__(self, username: str, prebuild_folders: Iterable[str], credential: Any, ssh_pkeys: Iterable[SSHPKey]) -> None:
+	def __init__(self, username: str, prebuild_folders: Optional[Iterable[str]], credential: Any, ssh_pkeys: Optional[Iterable[SSHPKey]]) -> None:
 		self.username = username
-		self.prebuild_folders = prebuild_folders
+		self.prebuild_folders = prebuild_folders if prebuild_folders else ()
 		self.credential = credential
 		self.ssh_pkeys = ssh_pkeys if ssh_pkeys else ()
 
