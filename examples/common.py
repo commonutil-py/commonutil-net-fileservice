@@ -23,7 +23,7 @@ _SSHPUBKEY1 = ("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDhEvdiQ1XS/I+55V/vL6oe3QW/
 
 def make_example_users() -> Iterable[User]:
 	result = [
-			User("user1", None, "pass1", unpack_ssh_pkey(_SSHPUBKEY1)),
+			User("user1", None, "pass1", (unpack_ssh_pkey(_SSHPUBKEY1), )),
 			User("user2", (
 					"d1/f01",
 					"d1/f02",
