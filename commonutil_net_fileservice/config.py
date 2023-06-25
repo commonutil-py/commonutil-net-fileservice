@@ -69,9 +69,10 @@ class User:
 		return None
 
 	def prepare_user_folders(self, base_folder_path: str) -> None:
-		if not self.prebuild_folders:
-			return
 		user_folder_path = os.path.abspath(os.path.join(base_folder_path, self.username))
+		if not self.prebuild_folders:
+			os.makedirs(user_folder_path, exist_ok=True)
+			return
 		for d_path in self.prebuild_folders:
 			target_path = os.path.abspath(os.path.join(user_folder_path, d_path))
 			if not target_path.startswith(user_folder_path):
