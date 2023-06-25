@@ -6,6 +6,10 @@ Configuration data classes
 from __future__ import annotations
 
 from typing import Any, Callable, Iterable, Mapping, Optional
+import logging
+import os
+
+_log = logging.getLogger(__name__)
 
 _REV = "0.0.2; 54e6001c024d5e934f47fe6f4451084986e8f9f0"  # REV-CONSTANT:full 5d022db7d38f580a850cd995e26a6c2f
 
@@ -63,6 +67,17 @@ class User:
 			if (pk.key_type == key_type) and (pk.b64_text == b64_text):
 				return pk
 		return None
+
+	def prepare_user_folders(self, base_folder_path: str) -> None:
+		if not self.prebuild_folders:
+			return
+		user_folder_path = os.path.abspath(os.path.join(base_folder_path, self.username))
+		for d_path in self.prebuild_folders:
+			target_path = os.path.abspath(os.path.join(user_folder_path, d_path))
+			if not target_path.startswith(user_folder_path):
+				_log.warning("escaped user pre-build folder (username=%r, user-folder=%r): %r", self.username, user_folder_path, target_path)
+				continue
+			os.makedirs(target_path, exist_ok=True)
 
 
 def make_users_map(users: Iterable[User]) -> Mapping[str, User]:
