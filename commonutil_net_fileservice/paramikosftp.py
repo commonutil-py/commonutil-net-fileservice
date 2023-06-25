@@ -112,7 +112,7 @@ class SFTPServerImpl(paramiko.SFTPServerInterface):
 
 	def _do_report(self, local_path, rel_path):
 		try:
-			self.process_callable(self.u.username, self._remote_location, local_path, rel_path)
+			self._process_callable(self.u.username, self._remote_location, local_path, rel_path)
 		except Exception:
 			_log.exception("caught exception on invoking received file processor: user=%r, remote=%r, local_path=%r, rel_path=%r", self.u.username,
 							self._remote_location, local_path, rel_path)
