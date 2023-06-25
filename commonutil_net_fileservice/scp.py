@@ -5,7 +5,7 @@ SCP protocol handler
 
 from __future__ import annotations
 
-from typing import Tuple, Callable, Optional
+from typing import Callable, Optional, Tuple
 import logging
 import os
 
@@ -34,7 +34,7 @@ class SCPSinkHandler:
 					mkdirmode: int = 0o755,
 					createfilemode: int = 0o644,
 					report_callable: Optional[Callable[[str, str], None]] = None) -> None:
-		self._base_folder_path = base_folder_path
+		self._base_folder_path = os.path.abspath(base_folder_path)
 		self._mkdirmode = mkdirmode
 		self._createfilemode = createfilemode
 		self._report_callable = report_callable
