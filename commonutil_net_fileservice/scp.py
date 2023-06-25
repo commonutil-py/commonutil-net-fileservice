@@ -14,7 +14,8 @@ _log = logging.getLogger(__name__)
 
 class SCPSinkHandler:
 	__slots__ = (
-			'_base_folder_path',
+			'_user_folder_path',
+			'_work_folder_path',
 			'_mkdirmode',
 			'_createfilemode',
 			'_report_callable',
@@ -29,12 +30,15 @@ class SCPSinkHandler:
 			'_last_relfilepath',
 	)
 
+	# pylint: disable=too-many-arguments
 	def __init__(self,
-					base_folder_path: str,
+					user_folder_path: str,
+					work_folder_path: str,
 					mkdirmode: int = 0o755,
 					createfilemode: int = 0o644,
 					report_callable: Optional[Callable[[str, str], None]] = None) -> None:
-		self._base_folder_path = os.path.abspath(base_folder_path)
+		self._user_folder_path = user_folder_path
+		self._work_folder_path = os.path.abspath(work_folder_path)
 		self._mkdirmode = mkdirmode
 		self._createfilemode = createfilemode
 		self._report_callable = report_callable
@@ -73,9 +77,9 @@ class SCPSinkHandler:
 		self._close_recv_fp()
 
 	def _prepare_dirstack_folder(self):
-		p = os.path.abspath(os.path.join(self._base_folder_path, *self._dirstack))
-		if not p.startswith(self._base_folder_path):
-			_log.warning("escaped dir stack (%r): %r", self._base_folder_path, p)
+		p = os.path.abspath(os.path.join(self._work_folder_path, *self._dirstack))
+		if not p.startswith(self._user_folder_path):
+			_log.warning("escaped dir stack (%r): %r", self._user_folder_path, p)
 			return
 		os.makedirs(p, self._mkdirmode, exist_ok=True)
 
@@ -86,13 +90,13 @@ class SCPSinkHandler:
 		pathcomps = self._dirstack + [
 				n,
 		]
-		p = os.path.abspath(os.path.join(self._base_folder_path, *pathcomps))
-		if not p.startswith(self._base_folder_path):
-			_log.warning("escaped file name (%r): %r", self._base_folder_path, p)
+		p = os.path.abspath(os.path.join(self._work_folder_path, *pathcomps))
+		if not p.startswith(self._user_folder_path):
+			_log.warning("escaped file name (%r): %r", self._user_folder_path, p)
 			return None
 		fp = open(p, 'wb', opener=self._fp_opener)  # pylint: disable=consider-using-with
 		self._last_absfilepath = p
-		self._last_relfilepath = p[len(self._base_folder_path) + 1:] if (self._base_folder_path != '/') else p
+		self._last_relfilepath = p[len(self._user_folder_path) + 1:]
 		return fp
 
 	def _fp_opener(self, path, flags):

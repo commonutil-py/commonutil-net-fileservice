@@ -116,7 +116,7 @@ def run_scp_sink(user_folder_path: str, report_callable: Callable, channel: para
 	streamed_bytes = 0
 	loaded_bytes = 0
 	resp_fn = _SCPResponseCallable(channel)
-	scp_sink = SCPSinkHandler(target_path, report_callable=report_callable)
+	scp_sink = SCPSinkHandler(user_folder_path, target_path, report_callable=report_callable)
 	try:
 		resp_fn(True, '')
 		while True:
