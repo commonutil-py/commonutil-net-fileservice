@@ -5,19 +5,19 @@ Adapter code for pyftpdlib
 
 from __future__ import annotations
 
-from typing import Callable, Iterable, Tuple, Optional
-import os
-import time
-import stat
+from typing import Callable, Iterable, Optional, Tuple
 import logging
-from io import BytesIO
+import os
+import stat
+import time
 from collections import namedtuple
+from io import BytesIO
 
 from pyftpdlib.authorizers import AuthenticationFailed
 from pyftpdlib.filesystems import AbstractedFS
 from pyftpdlib.handlers import FTPHandler as _FTPHandler
 
-from commonutil_net_fileservice.config import DEFAULT_REV_FILENAME, DEFAULT_REV_CONTENT, User, make_users_map
+from commonutil_net_fileservice.config import (DEFAULT_REV_CONTENT, DEFAULT_REV_FILENAME, User, make_users_map)
 
 _log = logging.getLogger(__name__)
 
