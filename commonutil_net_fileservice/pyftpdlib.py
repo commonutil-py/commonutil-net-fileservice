@@ -158,9 +158,8 @@ class NamedBytesIO(BytesIO):
 
 class FileSystem(AbstractedFS):
 	_v_rev_filename = DEFAULT_REV_FILENAME
-	_v_rev_content = DEFAULT_REV_CONTENT
-	_v_rev_stat = _StatResult(stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH, 0, 0, 1, 0, 0, len(DEFAULT_REV_CONTENT), _BOOTUP_TSTAMP, _BOOTUP_TSTAMP,
-								_BOOTUP_TSTAMP)
+	_v_rev_content = DEFAULT_REV_CONTENT.encode('utf-8', 'ignore')
+	_v_rev_stat = _StatResult(stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH, 0, 0, 1, 0, 0, len(_v_rev_content), _BOOTUP_TSTAMP, _BOOTUP_TSTAMP, _BOOTUP_TSTAMP)
 
 	def __init__(self, root, cmd_channel, *args, **kwds):
 		super().__init__(root, cmd_channel, *args, **kwds)
@@ -171,8 +170,9 @@ class FileSystem(AbstractedFS):
 	def set_v_rev_file(cls, filename: str, content: str) -> None:
 		content = content.strip() + "\n"
 		cls._v_rev_filename = filename
-		cls._v_rev_content = content
-		cls._v_rev_stat = _StatResult(stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH, 0, 0, 1, 0, 0, len(content), _BOOTUP_TSTAMP, _BOOTUP_TSTAMP, _BOOTUP_TSTAMP)
+		cls._v_rev_content = content.encode('utf-8', 'ignore')
+		cls._v_rev_stat = _StatResult(stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH, 0, 0, 1, 0, 0, len(cls._v_rev_content), _BOOTUP_TSTAMP, _BOOTUP_TSTAMP,
+										_BOOTUP_TSTAMP)
 
 	def _index_relpath_begin(self):
 		p = self.root
