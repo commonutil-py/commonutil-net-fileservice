@@ -61,7 +61,7 @@ class SFTPHandle(paramiko.SFTPHandle):
 		self.readfile = fp
 		self.writefile = fp
 		self.local_path = local_path
-		self.rel_path = rel_path
+		self.rel_path = os.path.normpath(rel_path.strip('/\\'))
 		self.report_callable = report_callable
 		self.stat_object = stat_object
 

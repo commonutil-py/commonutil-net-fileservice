@@ -81,6 +81,8 @@ class SCPSinkHandler:
 
 	def _open_file_path(self) -> Optional[str]:
 		n = bytes(self._filename).decode(encoding='utf-8').strip('/\\')
+		if not n:
+			return None
 		pathcomps = self._dirstack + [
 				n,
 		]
@@ -90,7 +92,7 @@ class SCPSinkHandler:
 			return None
 		fp = open(p, 'wb', opener=self._fp_opener)  # pylint: disable=consider-using-with
 		self._last_absfilepath = p
-		self._last_relfilepath = p[len(self._base_folder_path):] if (self._base_folder_path != '/') else p
+		self._last_relfilepath = p[len(self._base_folder_path) + 1:] if (self._base_folder_path != '/') else p
 		return fp
 
 	def _fp_opener(self, path, flags):
