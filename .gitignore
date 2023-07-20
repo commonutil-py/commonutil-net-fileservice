@@ -16,3 +16,4 @@ rt-sandbox/**
 .rt-deps/**
 *.egg-info/**
 dist/**
+_rev-info.txt
