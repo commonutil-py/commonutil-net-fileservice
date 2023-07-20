@@ -49,7 +49,8 @@ def make_sftp_attr(file_name: str, file_content: bytes) -> paramiko.SFTPAttribut
 	fattr.st_size = len(file_content)
 	fattr.st_uid = 0
 	fattr.st_gid = 0
-	fattr.st_mode = 0o0444
+	fattr.st_mode = 0o100444
+	fattr.st_mtime = int(time.time())
 	fattr.filename = file_name
 	return fattr
 
