@@ -17,7 +17,7 @@ import time
 import paramiko
 
 from commonutil_net_fileservice.config import (DEFAULT_REV_CONTENT, DEFAULT_REV_FILENAME, User, make_users_map)
-from commonutil_net_fileservice.paramikosubexec import (run_rsync_exec, run_scp_sink)
+from commonutil_net_fileservice.paramikosubexec import (run_rsync_exec, RsyncOptions, run_scp_sink)
 
 _log = logging.getLogger(__name__)
 
@@ -279,7 +279,7 @@ class ServerImpl(paramiko.ServerInterface):
 			'v_rev_filename',
 			'v_rev_content',
 			'v_rev_stat',
-			'binpath_rsync',
+			'rsync_opts',
 			'_users_lck',
 	)
 
@@ -290,7 +290,7 @@ class ServerImpl(paramiko.ServerInterface):
 					process_callable: Callable[[str, str, str, str], None],
 					v_rev_filename: str = DEFAULT_REV_FILENAME,
 					v_rev_content: str = DEFAULT_REV_CONTENT,
-					binpath_rsync: Optional[str] = None) -> None:
+					rsync_opts: Optional[RsyncOptions] = None) -> None:
 		super().__init__()
 		self.base_folder_path = base_folder_path
 		self.users = make_users_map(users)
@@ -298,7 +298,7 @@ class ServerImpl(paramiko.ServerInterface):
 		self.v_rev_filename = v_rev_filename
 		self.v_rev_content = (v_rev_content.strip() + "\n").encode('utf-8', 'ignore')
 		self.v_rev_stat = make_sftp_attr(v_rev_filename, self.v_rev_content)
-		self.binpath_rsync = binpath_rsync
+		self.rsync_opts = rsync_opts
 		self._users_lck = _thread.allocate_lock()
 
 	def update_users(self, users: Iterable[User]):
@@ -340,8 +340,8 @@ class ServerImpl(paramiko.ServerInterface):
 		user_folder_path = os.path.abspath(os.path.join(self.base_folder_path, u.username))
 		report_callable = _ReportCallableWrap(channel, u, self.process_callable)
 		if cmdtarget in ('rsync', '/bin/rsync', '/usr/bin/rsync'):
-			if self.binpath_rsync:
-				_thread.start_new_thread(run_rsync_exec, (user_folder_path, report_callable, channel, cmdpart))
+			if self.rsync_opts:
+				_thread.start_new_thread(run_rsync_exec, (remote_username, user_folder_path, report_callable, channel, cmdpart, self.rsync_opts))
 			else:
 				_log.warning("requested rsync but rsync executable path is not configurated")
 				return False
@@ -423,14 +423,14 @@ class SFTPServer(socketserver.ForkingTCPServer):
 					process_callable: Callable[[str, str, str, str], None],
 					v_rev_filename: str = DEFAULT_REV_FILENAME,
 					v_rev_content: str = DEFAULT_REV_CONTENT,
-					binpath_rsync: Optional[str] = None) -> None:
+					rsync_opts: Optional[RsyncOptions] = None) -> None:
 		super().__init__((server_host, server_port), SSHLinkHandler)
 		try:
 			self.host_pkey = paramiko.RSAKey.from_private_key_file(key_file_path)
 		except FileNotFoundError:
 			self.host_pkey = paramiko.RSAKey.generate(key_bits)
 			self.host_pkey.write_private_key_file(key_file_path)
-		self.server_impl = ServerImpl(base_folder_path, users, process_callable, v_rev_filename, v_rev_content, binpath_rsync)
+		self.server_impl = ServerImpl(base_folder_path, users, process_callable, v_rev_filename, v_rev_content, rsync_opts)
 
 	def update_users(self, users: Iterable[User]):
 		self.server_impl.update_users(users)
