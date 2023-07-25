@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from setuptools import setup  # pylint: disable=import-error
+from pathlib import Path
+
+from setuptools import setup
+
+long_description = (Path(__file__).parent / "README.md").read_text()
 
 setup(
 		name="commonutil-net-fileservice",
@@ -17,6 +21,8 @@ setup(
 				"Operating System :: POSIX",
 				"Programming Language :: Python :: 3.8",
 		],
+		long_description=long_description,
+		long_description_content_type="text/markdown",
 		license="MIT License",
 )
 
