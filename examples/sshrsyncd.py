@@ -3,12 +3,14 @@
 Example code for setting up FTP service with pyftpdlib
 """
 
-import sys
-import os
+from typing import Mapping
 import getopt
+import json
 import logging
+import os
+import sys
 
-from commonutil_net_fileservice.paramikosftp import SFTPServer, RsyncOptions
+from commonutil_net_fileservice.paramikosftp import RsyncOptions, SFTPServer
 
 from examples.common import make_example_users, process_callable
 
@@ -86,25 +88,34 @@ class RsyncStateAccess:
 		self.folder_path = folder_path
 
 	def _make_state_file_path(self, remote_username: str) -> str:
-		return os.path.abspath(os.path.join(self.folder_path, remote_username + ".txt"))
+		return os.path.abspath(os.path.join(self.folder_path, remote_username + ".json"))
 
-	def fetch_state(self, remote_username: str) -> str:
+	def _load_state_file_content(self, remote_username: str) -> Mapping[str, str]:
 		try:
 			with open(self._make_state_file_path(remote_username), "r", encoding="utf-8") as fp:
-				d = fp.read()
-			return d
+				cmap = json.load(fp)
+			return cmap
 		except FileNotFoundError:
 			pass
 		except Exception:
 			_log.exception("cannot fetch rsync state for [%r]", remote_username)
-		return ''
+		return {}
 
-	def save_state(self, remote_username: str, state_text: str) -> None:
+	def _save_state_file_content(self, remote_username: str, state_map: Mapping[str, str]) -> None:
 		try:
 			with open(self._make_state_file_path(remote_username), "w", encoding="utf-8") as fp:
-				fp.write(state_text)
+				json.dump(state_map, fp)
 		except Exception:
 			_log.exception("cannot save rsync state for [%r]", remote_username)
+
+	def fetch_state(self, remote_username: str, folder_path: str) -> str:
+		cmap = self._load_state_file_content(remote_username)
+		return cmap.get(folder_path, '')
+
+	def save_state(self, remote_username: str, folder_path: str, state_text: str) -> None:
+		cmap = self._load_state_file_content(remote_username)
+		cmap[folder_path] = state_text
+		self._save_state_file_content(remote_username, cmap)
 
 
 def main():
