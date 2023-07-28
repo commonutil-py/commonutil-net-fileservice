@@ -75,16 +75,15 @@ def stream_exec_stderr(channel: paramiko.Channel, pobj: subprocess.Popen):
 		_log.exception("cannot stream stderr data (streamed %d/%d bytes)", streamed_bytes, loaded_bytes)
 
 
-def rewrite_target_path(user_folder_path: str, target_path: str) -> str:
+def rewrite_target_path(user_folder_path: str, target_path: str) -> Tuple[str, str]:
 	if (not target_path) or (target_path == '.'):
-		return user_folder_path
+		return (user_folder_path, user_folder_path)
 	end_with_slash = (target_path[-1] == '/')
-	result_path = os.path.abspath(os.path.join(user_folder_path, target_path.strip('/\\')))
-	if not result_path.startswith(user_folder_path):
-		result_path = user_folder_path
-	if end_with_slash:
-		result_path = result_path + '/'
-	return result_path
+	abs_result_path = os.path.abspath(os.path.join(user_folder_path, target_path.strip('/\\')))
+	if not abs_result_path.startswith(user_folder_path):
+		abs_result_path = user_folder_path
+	cmd_result_path = (abs_result_path + '/') if end_with_slash else abs_result_path
+	return (abs_result_path, cmd_result_path)
 
 
 class RsyncOptions:
@@ -100,8 +99,8 @@ class RsyncOptions:
 	def __init__(self,
 					binpath: str,
 					shadow_folder_path: Optional[str],
-					fetch_state_callable: Optional[Callable[[str], str]] = None,
-					save_state_callable: Optional[Callable[[str, str], None]] = None,
+					fetch_state_callable: Optional[Callable[[str, str], str]] = None,
+					save_state_callable: Optional[Callable[[str, str, str], None]] = None,
 					invoke_timeout: float = 10.0) -> None:
 		self.binpath = binpath
 		self.shadow_folder_path = shadow_folder_path
@@ -109,46 +108,46 @@ class RsyncOptions:
 		self.save_state_callable = save_state_callable
 		self.invoke_timeout = invoke_timeout
 
-	def _fetch_state_invoke(self, q: multiprocessing.Queue, remote_username: str) -> None:
+	def _fetch_state_invoke(self, q: multiprocessing.Queue, remote_username: str, folder_path: str) -> None:
 		f_callable = self.fetch_state_callable
 		try:
-			result = f_callable(remote_username)
+			result = f_callable(remote_username, folder_path)
 			if not result:
 				result = ''
 		except Exception:
-			_log.exception('run fetch_state_callable for %r failed', remote_username)
+			_log.exception('run fetch_state_callable for %r [%r] failed', remote_username, folder_path)
 			result = ''
 		q.put(result, False)
 
-	def run_fetch_state(self, remote_username: str) -> str:
+	def run_fetch_state(self, remote_username: str, folder_path: str) -> str:
 		if not self.fetch_state_callable:
 			return ''
 		q = multiprocessing.Queue(1)
-		p = multiprocessing.Process(target=self._fetch_state_invoke, args=(q, remote_username))
+		p = multiprocessing.Process(target=self._fetch_state_invoke, args=(q, remote_username, folder_path))
 		p.start()
 		p.join(self.invoke_timeout)
 		try:
 			result = q.get_nowait()
 		except queue.Empty:
-			_log.warning('invoke fetch_state_callable for %r timeout', remote_username)
+			_log.warning('invoke fetch_state_callable for %r [%r] timeout', remote_username, folder_path)
 			result = ''
 		except Exception:
-			_log.exception('invoke fetch_state_callable for %r failed', remote_username)
+			_log.exception('invoke fetch_state_callable for %r [%r] failed', remote_username, folder_path)
 			result = ''
 		p.terminate()
 		return result
 
-	def _save_state_invoke(self, remote_username: str, state_text: str) -> None:
+	def _save_state_invoke(self, remote_username: str, folder_path: str, state_text: str) -> None:
 		f_callable = self.save_state_callable
 		try:
-			f_callable(remote_username, state_text)
+			f_callable(remote_username, folder_path, state_text)
 		except Exception:
-			_log.exception('run save_state_callable for %r failed', remote_username)
+			_log.exception('run save_state_callable for %r [%r] failed', remote_username, folder_path)
 
-	def run_save_state(self, remote_username: str, state_text: str) -> None:
+	def run_save_state(self, remote_username: str, folder_path: str, state_text: str) -> None:
 		if not self.save_state_callable:
 			return
-		p = multiprocessing.Process(target=self._save_state_invoke, args=(remote_username, state_text))
+		p = multiprocessing.Process(target=self._save_state_invoke, args=(remote_username, folder_path, state_text))
 		p.start()
 		p.join(self.invoke_timeout)
 		p.terminate()
@@ -170,6 +169,8 @@ def _wrap_rsync_mtime(v) -> str:
 
 
 def _scan_latest_mtime(target_folder_path: str) -> int:
+	if not os.path.isdir(target_folder_path):
+		return 0  # we do not support this scenario
 	start_at = time.time()
 	scancount = 0
 	latest_mtime = 0
@@ -191,6 +192,8 @@ def _scan_latest_mtime(target_folder_path: str) -> int:
 
 
 def _check_updated_mtime(target_folder_path: str, prev_latest_mtime: int) -> Tuple[int, Iterable[str]]:
+	if not os.path.isdir(target_folder_path):
+		return (0, [])  # we do not support this scenario
 	start_at = time.time()
 	scancount = 0
 	latest_mtime = 0
@@ -242,11 +245,12 @@ def _report_changed_paths(remote_username: str, user_folder_path: str, report_ca
 # pylint: disable=too-many-arguments
 def run_rsync_exec(remote_username: str, user_folder_path: str, report_callable: Callable, channel: paramiko.Channel, cmdpart: List[str],
 					rsync_opts: RsyncOptions):
-	cmdpart[-1] = rewrite_target_path(user_folder_path, cmdpart[-1])
+	abs_target_path, cmdpart[-1] = rewrite_target_path(user_folder_path, cmdpart[-1])
+	rel_target_path = os.path.relpath(abs_target_path, user_folder_path)
 	_log.debug('rsync command (rewritten): %r', cmdpart)
-	prev_latest_mtime = _extract_rsync_mtime(rsync_opts.run_fetch_state(remote_username))
+	prev_latest_mtime = _extract_rsync_mtime(rsync_opts.run_fetch_state(remote_username, rel_target_path))
 	if prev_latest_mtime == 0:
-		prev_latest_mtime = _scan_latest_mtime(user_folder_path)
+		prev_latest_mtime = _scan_latest_mtime(abs_target_path)
 	with subprocess.Popen(cmdpart, bufsize=0, executable=rsync_opts.binpath, stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True) as pobj:
 		_thread.start_new_thread(stream_exec_stdout, (channel, pobj))
 		_thread.start_new_thread(stream_exec_stdin, (channel, pobj))
@@ -255,8 +259,8 @@ def run_rsync_exec(remote_username: str, user_folder_path: str, report_callable:
 		retcode = pobj.wait()
 	_log.debug('command stopped: %r', retcode)
 	try:
-		synced_latest_mtime, changed_paths = _check_updated_mtime(user_folder_path, prev_latest_mtime)
-		rsync_opts.run_save_state(remote_username, _wrap_rsync_mtime(synced_latest_mtime))
+		synced_latest_mtime, changed_paths = _check_updated_mtime(abs_target_path, prev_latest_mtime)
+		rsync_opts.run_save_state(remote_username, rel_target_path, _wrap_rsync_mtime(synced_latest_mtime))
 		_report_changed_paths(remote_username, user_folder_path, report_callable, changed_paths, rsync_opts)
 	except Exception:
 		_log.exception("run_rsync_exec: caught failure on cheking update")
@@ -279,7 +283,7 @@ class _SCPResponseCallable:
 
 def run_scp_sink(user_folder_path: str, report_callable: Callable, channel: paramiko.Channel, cmdpart: Iterable):
 	_log.debug('scp command: %r', cmdpart)
-	target_path = rewrite_target_path(user_folder_path, cmdpart[-1])
+	_abs_target_path, target_path = rewrite_target_path(user_folder_path, cmdpart[-1])
 	streamed_bytes = 0
 	loaded_bytes = 0
 	resp_fn = _SCPResponseCallable(channel)
