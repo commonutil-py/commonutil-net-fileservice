@@ -30,6 +30,7 @@ def make_example_users() -> Iterable[User]:
 					"d2/f01",
 					"d3",
 			), "pass2", None),
+			User("user3", None, "pass3", None, "/tmp/common-net-fsrv-user3")
 	]
 	return result
 

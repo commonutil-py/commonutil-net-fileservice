@@ -97,7 +97,7 @@ class SFTPServerImpl(paramiko.SFTPServerInterface):
 	def __init__(self, server: ServerImpl, transport: paramiko.Transport, *args, **kwargs):
 		super().__init__(server, *args, **kwargs)
 		self.u, _remote_username = server.lookup_user_via_transport(transport)
-		self.user_folder_path = os.path.abspath(os.path.join(server.base_folder_path, self.u.username)) if self.u else '/dev/null'
+		self.user_folder_path = self.u.get_user_folder_path(server.base_folder_path) if self.u else '/dev/null'
 		self.v_rev_filepath = '/' + server.v_rev_filename
 		self.v_rev_content = server.v_rev_content
 		self.v_rev_stat = server.v_rev_stat
@@ -337,7 +337,7 @@ class ServerImpl(paramiko.ServerInterface):
 			raise Exception('low argument count', cmdpart)
 		cmdtarget = cmdpart[0]
 		_log.info("run: [%s] as [%r]", cmdtarget, remote_username)
-		user_folder_path = os.path.abspath(os.path.join(self.base_folder_path, u.username))
+		user_folder_path = u.get_user_folder_path(self.base_folder_path)
 		report_callable = _ReportCallableWrap(channel, u, self.process_callable)
 		if cmdtarget in ('rsync', '/bin/rsync', '/usr/bin/rsync'):
 			if self.rsync_opts:

@@ -45,31 +45,52 @@ class User:
 			'prebuild_folders',
 			'credential',
 			'ssh_pkeys',
+			'_user_folder_path',
 	)
 
 	credential_checker: Callable[[User, str], bool] = _default_credential_checker
 
-	def __init__(self, username: str, prebuild_folders: Optional[Iterable[str]], credential: Any, ssh_pkeys: Optional[Iterable[SSHPKey]]) -> None:
+	# pylint: disable=too-many-arguments
+	def __init__(
+			self,
+			username: str,
+			prebuild_folders: Optional[Iterable[str]],
+			credential: Any,
+			ssh_pkeys: Optional[Iterable[SSHPKey]] = None,
+			user_folder_path: Optional[str] = None,
+	) -> None:
 		self.username = username
 		self.prebuild_folders = prebuild_folders if prebuild_folders else ()
 		self.credential = credential
 		self.ssh_pkeys = ssh_pkeys if ssh_pkeys else ()
+		self._user_folder_path = os.path.abspath(user_folder_path) if user_folder_path else None
 
 	def check_credential(self, remote_credential: str) -> bool:
-		""" Return True if given `remote_credential` is accepted.
+		"""
+		Return True if given `remote_credential` is accepted.
 		"""
 		return self.credential_checker(remote_credential)
 
 	def check_ssh_pkey(self, key_type: str, b64_text: str) -> Optional[SSHPKey]:
-		""" Return SSHPKey instance if matching key is found.
+		"""
+		Return SSHPKey instance if matching key is found.
 		"""
 		for pk in self.ssh_pkeys:
 			if (pk.key_type == key_type) and (pk.b64_text == b64_text):
 				return pk
 		return None
 
+	def get_user_folder_path(self, base_folder_path: str) -> str:
+		"""
+		Return user folder path.
+		Generate and cache user folder path base on given base_folder_path if user folder path not given.
+		"""
+		if not self._user_folder_path:
+			self._user_folder_path = os.path.abspath(os.path.join(base_folder_path, self.username))
+		return self._user_folder_path
+
 	def prepare_user_folders(self, base_folder_path: str) -> None:
-		user_folder_path = os.path.abspath(os.path.join(base_folder_path, self.username))
+		user_folder_path = self.get_user_folder_path(base_folder_path)
 		if not self.prebuild_folders:
 			os.makedirs(user_folder_path, exist_ok=True)
 			return

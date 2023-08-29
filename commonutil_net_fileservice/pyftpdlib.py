@@ -92,10 +92,10 @@ class Authorizer:
 		can be freely raised by subclasses in case the provided username no
 		longer exists.
 		"""
-		u = self.users[username]
-		wd = os.path.abspath(os.path.join(self.base_folder_path, u.username))
-		if not wd.startswith(self.base_folder_path):
-			raise AuthenticationFailed(f"home folder escaped: {username!r}: {wd!r}")
+		u = self.users.get(username)
+		if not u:
+			raise AuthenticationFailed(f"unknown user: {username!r}")
+		wd = u.get_user_folder_path(self.base_folder_path)
 		return wd
 
 	def impersonate_user(self, username, password):
