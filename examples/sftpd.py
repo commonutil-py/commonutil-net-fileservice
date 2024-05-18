@@ -27,16 +27,19 @@ Options:
 
 def parse_options(argv):
 	sftp_port = 2222
-	base_folder_path = '/tmp/common-net-paramikosftpd-example'
-	host_key_path = os.path.abspath('examples/host.key')
+	base_folder_path = "/tmp/common-net-paramikosftpd-example"
+	host_key_path = os.path.abspath("examples/host.key")
 	try:
-		opts, _args, = getopt.getopt(argv, "hv", (
+		opts, _args = getopt.getopt(
+			argv,
+			"hv",
+			(
 				"port=",
 				"base-folder=",
-				"host-key="
-				"help",
-		))
-		for opt, arg, in opts:
+				"host-key=" "help",
+			),
+		)
+		for opt, arg in opts:
 			if opt in ("-h", "--help"):
 				print(_HELP_TEXT)
 				raise SystemExit(1)
@@ -54,9 +57,9 @@ def parse_options(argv):
 		raise ValueError("option `--base-folder` is required.")
 	os.makedirs(base_folder_path, exist_ok=True)
 	return (
-			sftp_port,
-			base_folder_path,
-			host_key_path,
+		sftp_port,
+		base_folder_path,
+		host_key_path,
 	)
 
 
@@ -68,11 +71,11 @@ def main():
 	for u in user_cfgs:
 		u.prepare_user_folders(base_folder_path)
 	SFTPServer.allow_reuse_address = True
-	server = SFTPServer('', sftp_port, host_key_path, 4096, base_folder_path, user_cfgs, process_callable)
+	server = SFTPServer("", sftp_port, host_key_path, 4096, base_folder_path, user_cfgs, process_callable)
 	with server:
 		_log.info("listen on %r", server.server_address)
 		server.serve_forever()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 	main()

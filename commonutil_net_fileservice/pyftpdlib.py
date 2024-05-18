@@ -17,11 +17,12 @@ from pyftpdlib.authorizers import AuthenticationFailed
 from pyftpdlib.filesystems import AbstractedFS
 from pyftpdlib.handlers import FTPHandler as _FTPHandler
 
-from commonutil_net_fileservice.config import (DEFAULT_REV_CONTENT, DEFAULT_REV_FILENAME, User, make_users_map)
+from commonutil_net_fileservice.config import DEFAULT_REV_CONTENT, DEFAULT_REV_FILENAME, User, make_users_map
 
 _log = logging.getLogger(__name__)
 
 _ALL_PERM = "elradfmwM"
+
 """
 Read permissions:
 - "e" = change directory (CWD command)
@@ -37,7 +38,9 @@ Write permissions:
 - "T" = update file last modified time (MFMT command)
 """
 
-_StatResult = namedtuple("_StatResult", (
+_StatResult = namedtuple(
+	"_StatResult",
+	(
 		"st_mode",
 		"st_ino",
 		"st_dev",
@@ -48,14 +51,15 @@ _StatResult = namedtuple("_StatResult", (
 		"st_atime",
 		"st_mtime",
 		"st_ctime",
-))
+	),
+)
 _BOOTUP_TSTAMP = time.time()
 
 
 class Authorizer:
 	__slots__ = (
-			'users',
-			'base_folder_path',
+		"users",
+		"base_folder_path",
 	)
 
 	def __init__(self, users: Iterable[User], base_folder_path: str, *args, **kwds):
@@ -158,8 +162,19 @@ class NamedBytesIO(BytesIO):
 
 class FileSystem(AbstractedFS):
 	_v_rev_filename = DEFAULT_REV_FILENAME
-	_v_rev_content = DEFAULT_REV_CONTENT.encode('utf-8', 'ignore')
-	_v_rev_stat = _StatResult(stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH, 0, 0, 1, 0, 0, len(_v_rev_content), _BOOTUP_TSTAMP, _BOOTUP_TSTAMP, _BOOTUP_TSTAMP)
+	_v_rev_content = DEFAULT_REV_CONTENT.encode("utf-8", "ignore")
+	_v_rev_stat = _StatResult(
+		stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH,
+		0,
+		0,
+		1,
+		0,
+		0,
+		len(_v_rev_content),
+		_BOOTUP_TSTAMP,
+		_BOOTUP_TSTAMP,
+		_BOOTUP_TSTAMP,
+	)
 
 	def __init__(self, root, cmd_channel, *args, **kwds):
 		super().__init__(root, cmd_channel, *args, **kwds)
@@ -170,19 +185,29 @@ class FileSystem(AbstractedFS):
 	def set_v_rev_file(cls, filename: str, content: str) -> None:
 		content = content.strip() + "\n"
 		cls._v_rev_filename = filename
-		cls._v_rev_content = content.encode('utf-8', 'ignore')
-		cls._v_rev_stat = _StatResult(stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH, 0, 0, 1, 0, 0, len(cls._v_rev_content), _BOOTUP_TSTAMP, _BOOTUP_TSTAMP,
-										_BOOTUP_TSTAMP)
+		cls._v_rev_content = content.encode("utf-8", "ignore")
+		cls._v_rev_stat = _StatResult(
+			stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH,
+			0,
+			0,
+			1,
+			0,
+			0,
+			len(cls._v_rev_content),
+			_BOOTUP_TSTAMP,
+			_BOOTUP_TSTAMP,
+			_BOOTUP_TSTAMP,
+		)
 
 	def _index_relpath_begin(self):
 		p = self.root
 		if p[-1] == "/":
 			return len(p)
-		return (len(p) + 1)
+		return len(p) + 1
 
 	def fs2relpath(self, filepath):
 		try:
-			return filepath[self._begin_relpath:]
+			return filepath[self._begin_relpath :]
 		except Exception:
 			pass
 		return None
@@ -200,7 +225,7 @@ class FileSystem(AbstractedFS):
 		result = super().listdir(path)
 		if path == self._root:
 			return result + [
-					self._v_rev_filename,
+				self._v_rev_filename,
 			]
 		return result
 
@@ -259,11 +284,16 @@ class FileSystem(AbstractedFS):
 
 class FTPHandler(_FTPHandler):
 	process_callable = None
-	default_transfer_type = 'i'
+	default_transfer_type = "i"
 
 	def on_connect(self):
-		_log.info("connect: (%r:%r), (%r connections/ %r total connections)", self.remote_ip, self.remote_port, self.server.ip_map.count(self.remote_ip),
-					len(self.server.ip_map))
+		_log.info(
+			"connect: (%r:%r), (%r connections/ %r total connections)",
+			self.remote_ip,
+			self.remote_port,
+			self.server.ip_map.count(self.remote_ip),
+			len(self.server.ip_map),
+		)
 
 	def on_login(self, username):
 		"""
@@ -292,8 +322,14 @@ class FTPHandler(_FTPHandler):
 		Called when connection is closed.
 		"""
 		self.file_rule_set = None
-		_log.info("disconnect: %r (%r:%r), (%r connections/ %r total connections)", self.username, self.remote_ip, self.remote_port,
-					self.server.ip_map.count(self.remote_ip), len(self.server.ip_map))
+		_log.info(
+			"disconnect: %r (%r:%r), (%r connections/ %r total connections)",
+			self.username,
+			self.remote_ip,
+			self.remote_port,
+			self.server.ip_map.count(self.remote_ip),
+			len(self.server.ip_map),
+		)
 
 	def on_file_sent(self, file):
 		"""
@@ -324,8 +360,13 @@ class FTPHandler(_FTPHandler):
 		try:
 			FTPHandler.process_callable(self.username, remote_location, file, relfilepath)  # pylint: disable=not-callable
 		except Exception:
-			_log.exception("caught exception on invoking received file processor: user=%r, remote=%r, filename=%r, relfilepath=%r", self.username,
-							remote_location, file, relfilepath)
+			_log.exception(
+				"caught exception on invoking received file processor: user=%r, remote=%r, filename=%r, relfilepath=%r",
+				self.username,
+				remote_location,
+				file,
+				relfilepath,
+			)
 
 	def ftp_USER(self, line):
 		"""
@@ -374,14 +415,16 @@ class FTPHandler(_FTPHandler):
 
 
 # pylint: disable=too-many-arguments
-def setup_handlers(banner_text: str,
-					base_folder_path: str,
-					users: Iterable[User],
-					process_callable: Optional[Callable],
-					ftp_passive_port_range: Optional[Iterable[int]],
-					ftp_public_address: Optional[str],
-					v_rev_filename: str = DEFAULT_REV_FILENAME,
-					v_rev_content: str = DEFAULT_REV_CONTENT) -> Tuple[FTPHandler, Authorizer]:
+def setup_handlers(
+	banner_text: str,
+	base_folder_path: str,
+	users: Iterable[User],
+	process_callable: Optional[Callable],
+	ftp_passive_port_range: Optional[Iterable[int]],
+	ftp_public_address: Optional[str],
+	v_rev_filename: str = DEFAULT_REV_FILENAME,
+	v_rev_content: str = DEFAULT_REV_CONTENT,
+) -> Tuple[FTPHandler, Authorizer]:
 	"""
 	Prepare handlers for FTP server
 	"""

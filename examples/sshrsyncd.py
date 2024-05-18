@@ -35,13 +35,16 @@ Options:
 
 def parse_options(argv):
 	sftp_port = 2222
-	base_folder_path = '/tmp/common-net-paramikosftpd-example'
-	host_key_path = os.path.abspath('examples/host.key')
-	rsync_binpath = '/usr/bin/rsync'
+	base_folder_path = "/tmp/common-net-paramikosftpd-example"
+	host_key_path = os.path.abspath("examples/host.key")
+	rsync_binpath = "/usr/bin/rsync"
 	shadow_folder_path = None
-	rsync_state_folder = '/tmp/common-net-paramikosftpd-exrsyncstate'
+	rsync_state_folder = "/tmp/common-net-paramikosftpd-exrsyncstate"
 	try:
-		opts, _args, = getopt.getopt(argv, "hv", (
+		opts, _args = getopt.getopt(
+			argv,
+			"hv",
+			(
 				"port=",
 				"base-folder=",
 				"host-key=",
@@ -49,8 +52,9 @@ def parse_options(argv):
 				"shadow-folder=",
 				"state-folder=",
 				"help",
-		))
-		for opt, arg, in opts:
+			),
+		)
+		for opt, arg in opts:
 			if opt in ("-h", "--help"):
 				print(_HELP_TEXT)
 				raise SystemExit(1)
@@ -74,12 +78,12 @@ def parse_options(argv):
 		raise ValueError("option `--base-folder` is required.")
 	os.makedirs(base_folder_path, exist_ok=True)
 	return (
-			sftp_port,
-			base_folder_path,
-			host_key_path,
-			rsync_binpath,
-			shadow_folder_path,
-			rsync_state_folder,
+		sftp_port,
+		base_folder_path,
+		host_key_path,
+		rsync_binpath,
+		shadow_folder_path,
+		rsync_state_folder,
 	)
 
 
@@ -110,7 +114,7 @@ class RsyncStateAccess:
 
 	def fetch_state(self, remote_username: str, folder_path: str) -> str:
 		cmap = self._load_state_file_content(remote_username)
-		return cmap.get(folder_path, '')
+		return cmap.get(folder_path, "")
 
 	def save_state(self, remote_username: str, folder_path: str, state_text: str) -> None:
 		cmap = self._load_state_file_content(remote_username)
@@ -121,19 +125,25 @@ class RsyncStateAccess:
 def main():
 	log_level = logging.INFO if ("-v" not in sys.argv) else logging.DEBUG
 	logging.basicConfig(stream=sys.stderr, level=log_level)
-	sftp_port, base_folder_path, host_key_path, rsync_binpath, shadow_folder_path, rsync_state_folder = parse_options(sys.argv[1:])
+	sftp_port, base_folder_path, host_key_path, rsync_binpath, shadow_folder_path, rsync_state_folder = parse_options(
+		sys.argv[1:]
+	)
 	user_cfgs = make_example_users()
 	for u in user_cfgs:
 		u.prepare_user_folders(base_folder_path)
 	os.makedirs(rsync_state_folder, mode=0o755, exist_ok=True)
 	rsync_state_access = RsyncStateAccess(rsync_state_folder)
-	rsync_opts = RsyncOptions(rsync_binpath, shadow_folder_path, rsync_state_access.fetch_state, rsync_state_access.save_state)
+	rsync_opts = RsyncOptions(
+		rsync_binpath, shadow_folder_path, rsync_state_access.fetch_state, rsync_state_access.save_state
+	)
 	SFTPServer.allow_reuse_address = True
-	server = SFTPServer('', sftp_port, host_key_path, 4096, base_folder_path, user_cfgs, process_callable, rsync_opts=rsync_opts)
+	server = SFTPServer(
+		"", sftp_port, host_key_path, 4096, base_folder_path, user_cfgs, process_callable, rsync_opts=rsync_opts
+	)
 	with server:
 		_log.info("listen on %r", server.server_address)
 		server.serve_forever()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 	main()

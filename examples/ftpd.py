@@ -29,14 +29,18 @@ Options:
 
 def parse_options(argv):
 	ftp_port = 2121
-	base_folder_path = '/tmp/common-net-pyftpdlib-example'
+	base_folder_path = "/tmp/common-net-pyftpdlib-example"
 	try:
-		opts, _args, = getopt.getopt(argv, "hv", (
+		opts, _args = getopt.getopt(
+			argv,
+			"hv",
+			(
 				"port=",
 				"base-folder=",
 				"help",
-		))
-		for opt, arg, in opts:
+			),
+		)
+		for opt, arg in opts:
 			if opt in ("-h", "--help"):
 				print(_HELP_TEXT)
 				raise SystemExit(1)
@@ -52,26 +56,26 @@ def parse_options(argv):
 		raise ValueError("option `--base-folder` is required.")
 	os.makedirs(base_folder_path, exist_ok=True)
 	return (
-			ftp_port,
-			base_folder_path,
+		ftp_port,
+		base_folder_path,
 	)
 
 
 def main():
 	log_level = logging.INFO if ("-v" not in sys.argv) else logging.DEBUG
 	logging.basicConfig(stream=sys.stderr, level=log_level)
-	ftp_port, base_folder_path, = parse_options(sys.argv[1:])
+	ftp_port, base_folder_path = parse_options(sys.argv[1:])
 	user_cfgs = make_example_users()
 	for u in user_cfgs:
 		u.prepare_user_folders(base_folder_path)
 	ftp_hnd, _auth_hnd = setup_handlers("Example FTP service", base_folder_path, user_cfgs, process_callable, None, None)
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	sock.bind(('', ftp_port))
+	sock.bind(("", ftp_port))
 	with FTPServer(sock, ftp_hnd) as server:
 		server.serve_forever()
 	sock.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 	main()

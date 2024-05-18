@@ -18,13 +18,13 @@ DEFAULT_REV_CONTENT = _REV + "\n"
 
 
 def _default_credential_checker(u: User, remote_credential: str) -> bool:
-	return (u.credential == remote_credential)
+	return u.credential == remote_credential
 
 
 class SSHPKey:
 	__slots__ = (
-			'key_type',
-			'b64_text',
+		"key_type",
+		"b64_text",
 	)
 
 	def __init__(self, key_type: str, b64_text: str) -> None:
@@ -33,7 +33,7 @@ class SSHPKey:
 
 
 def unpack_ssh_pkey(pkey_text: str) -> Optional[SSHPKey]:
-	aux = pkey_text.split(' ', 3)
+	aux = pkey_text.split(" ", 3)
 	if len(aux) < 2:
 		return None
 	return SSHPKey(aux[0], aux[1])
@@ -41,23 +41,23 @@ def unpack_ssh_pkey(pkey_text: str) -> Optional[SSHPKey]:
 
 class User:
 	__slots__ = (
-			'username',
-			'prebuild_folders',
-			'credential',
-			'ssh_pkeys',
-			'_user_folder_path',
+		"username",
+		"prebuild_folders",
+		"credential",
+		"ssh_pkeys",
+		"_user_folder_path",
 	)
 
 	credential_checker: ClassVar[Callable[[User, str], bool]] = _default_credential_checker
 
 	# pylint: disable=too-many-arguments
 	def __init__(
-			self,
-			username: str,
-			prebuild_folders: Optional[Iterable[str]],
-			credential: Any,
-			ssh_pkeys: Optional[Iterable[SSHPKey]] = None,
-			user_folder_path: Optional[str] = None,
+		self,
+		username: str,
+		prebuild_folders: Optional[Iterable[str]],
+		credential: Any,
+		ssh_pkeys: Optional[Iterable[SSHPKey]] = None,
+		user_folder_path: Optional[str] = None,
 	) -> None:
 		self.username = username
 		self.prebuild_folders = prebuild_folders if prebuild_folders else ()
@@ -97,7 +97,12 @@ class User:
 		for d_path in self.prebuild_folders:
 			target_path = os.path.abspath(os.path.join(user_folder_path, d_path))
 			if not target_path.startswith(user_folder_path):
-				_log.warning("escaped user pre-build folder (username=%r, user-folder=%r): %r", self.username, user_folder_path, target_path)
+				_log.warning(
+					"escaped user pre-build folder (username=%r, user-folder=%r): %r",
+					self.username,
+					user_folder_path,
+					target_path,
+				)
 				continue
 			os.makedirs(target_path, exist_ok=True)
 

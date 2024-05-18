@@ -16,20 +16,20 @@ import time
 
 import paramiko
 
-from commonutil_net_fileservice.config import (DEFAULT_REV_CONTENT, DEFAULT_REV_FILENAME, User, make_users_map)
-from commonutil_net_fileservice.paramikosubexec import (run_rsync_exec, RsyncOptions, run_scp_sink)
+from commonutil_net_fileservice.config import DEFAULT_REV_CONTENT, DEFAULT_REV_FILENAME, User, make_users_map
+from commonutil_net_fileservice.paramikosubexec import run_rsync_exec, RsyncOptions, run_scp_sink
 
 _log = logging.getLogger(__name__)
 
 
 def open_mode_from_flags(flags) -> str:
 	if flags & os.O_EXCL:
-		return 'xb'
+		return "xb"
 	if flags & os.O_WRONLY:
-		return 'ab' if (flags & os.O_APPEND) else 'wb'
+		return "ab" if (flags & os.O_APPEND) else "wb"
 	if flags & os.O_RDWR:
-		return 'a+b' if (flags & os.O_APPEND) else 'r+b'
-	return 'rb'
+		return "a+b" if (flags & os.O_APPEND) else "r+b"
+	return "rb"
 
 
 def _fp_opener(path, flags):
@@ -62,7 +62,7 @@ class SFTPHandle(paramiko.SFTPHandle):
 		self.readfile = fp
 		self.writefile = fp
 		self.local_path = local_path
-		self.rel_path = os.path.normpath(rel_path.strip('/\\'))
+		self.rel_path = os.path.normpath(rel_path.strip("/\\"))
 		self.report_callable = report_callable
 		self.stat_object = stat_object
 
@@ -85,38 +85,43 @@ class SFTPHandle(paramiko.SFTPHandle):
 
 class SFTPServerImpl(paramiko.SFTPServerInterface):
 	__slots__ = (
-			'u',
-			'user_folder_path',
-			'v_rev_filepath',
-			'v_rev_content',
-			'v_rev_stat',
-			'_remote_location',
-			'_process_callable',
+		"u",
+		"user_folder_path",
+		"v_rev_filepath",
+		"v_rev_content",
+		"v_rev_stat",
+		"_remote_location",
+		"_process_callable",
 	)
 
 	def __init__(self, server: ServerImpl, transport: paramiko.Transport, *args, **kwargs):
 		super().__init__(server, *args, **kwargs)
 		self.u, _remote_username = server.lookup_user_via_transport(transport)
-		self.user_folder_path = self.u.get_user_folder_path(server.base_folder_path) if self.u else '/dev/null'
-		self.v_rev_filepath = '/' + server.v_rev_filename
+		self.user_folder_path = self.u.get_user_folder_path(server.base_folder_path) if self.u else "/dev/null"
+		self.v_rev_filepath = "/" + server.v_rev_filename
 		self.v_rev_content = server.v_rev_content
 		self.v_rev_stat = server.v_rev_stat
 		self._remote_location = _remote_location_from_transport(transport)
 		self._process_callable = server.process_callable
 
 	def _local_path(self, remote_path: str) -> str:
-		p = os.path.abspath(os.path.join(self.user_folder_path, remote_path.strip('/\\')))
+		p = os.path.abspath(os.path.join(self.user_folder_path, remote_path.strip("/\\")))
 		if p.startswith(self.user_folder_path):
 			return p
-		_log.warning('escaped local path (user: %r): %r', self.user_folder_path, p)
+		_log.warning("escaped local path (user: %r): %r", self.user_folder_path, p)
 		return self.user_folder_path
 
 	def _do_report(self, local_path, rel_path):
 		try:
 			self._process_callable(self.u.username, self._remote_location, local_path, rel_path)
 		except Exception:
-			_log.exception("caught exception on invoking received file processor: user=%r, remote=%r, local_path=%r, rel_path=%r", self.u.username,
-							self._remote_location, local_path, rel_path)
+			_log.exception(
+				"caught exception on invoking received file processor: user=%r, remote=%r, local_path=%r, rel_path=%r",
+				self.u.username,
+				self._remote_location,
+				local_path,
+				rel_path,
+			)
 
 	def chattr(self, path, attr):
 		_log.debug("chattr: %r, %r", path, attr)
@@ -134,7 +139,7 @@ class SFTPServerImpl(paramiko.SFTPServerInterface):
 			stat_obj = os.lstat(f_path)
 			sftpattr = paramiko.SFTPAttributes.from_stat(stat_obj, n)
 			result.append(sftpattr)
-		if path == '/':
+		if path == "/":
 			result.append(self.v_rev_stat)
 		return result
 
@@ -155,7 +160,7 @@ class SFTPServerImpl(paramiko.SFTPServerInterface):
 		if not self.u:
 			return paramiko.SFTP_PERMISSION_DENIED
 		_log.debug("mkdir: %r, %r", path, attr)
-		if path in ('/', self.v_rev_filepath):
+		if path in ("/", self.v_rev_filepath):
 			return paramiko.SFTP_PERMISSION_DENIED
 		local_path = self._local_path(path)
 		if local_path == self.user_folder_path:
@@ -193,7 +198,7 @@ class SFTPServerImpl(paramiko.SFTPServerInterface):
 		realpath = os.path.realpath(local_path)
 		if not realpath.startswith(self.user_folder_path):
 			return paramiko.SFTP_NO_SUCH_FILE
-		relatedpath = realpath[len(self.user_folder_path):]
+		relatedpath = realpath[len(self.user_folder_path) :]
 		return relatedpath
 
 	def remove(self, path):
@@ -254,9 +259,9 @@ class SFTPServerImpl(paramiko.SFTPServerInterface):
 
 class _ReportCallableWrap:
 	__slots__ = (
-			'u',
-			'remote_location',
-			'process_callable',
+		"u",
+		"remote_location",
+		"process_callable",
 	)
 
 	def __init__(self, channel: paramiko.Channel, u: User, process_callable: Callable[[str, str, str, str], None]) -> None:
@@ -268,35 +273,39 @@ class _ReportCallableWrap:
 		try:
 			self.process_callable(self.u.username, self.remote_location, local_path, rel_path)
 		except Exception:
-			_log.exception("invoke process callable (%r, %r, %r, %r)", self.u.username, self.remote_location, local_path, rel_path)
+			_log.exception(
+				"invoke process callable (%r, %r, %r, %r)", self.u.username, self.remote_location, local_path, rel_path
+			)
 
 
 class ServerImpl(paramiko.ServerInterface):
 	__slots__ = (
-			'base_folder_path',
-			'users',
-			'process_callable',
-			'v_rev_filename',
-			'v_rev_content',
-			'v_rev_stat',
-			'rsync_opts',
-			'_users_lck',
+		"base_folder_path",
+		"users",
+		"process_callable",
+		"v_rev_filename",
+		"v_rev_content",
+		"v_rev_stat",
+		"rsync_opts",
+		"_users_lck",
 	)
 
 	# pylint: disable=too-many-arguments
-	def __init__(self,
-					base_folder_path: str,
-					users: Iterable[User],
-					process_callable: Callable[[str, str, str, str], None],
-					v_rev_filename: str = DEFAULT_REV_FILENAME,
-					v_rev_content: str = DEFAULT_REV_CONTENT,
-					rsync_opts: Optional[RsyncOptions] = None) -> None:
+	def __init__(
+		self,
+		base_folder_path: str,
+		users: Iterable[User],
+		process_callable: Callable[[str, str, str, str], None],
+		v_rev_filename: str = DEFAULT_REV_FILENAME,
+		v_rev_content: str = DEFAULT_REV_CONTENT,
+		rsync_opts: Optional[RsyncOptions] = None,
+	) -> None:
 		super().__init__()
 		self.base_folder_path = base_folder_path
 		self.users = make_users_map(users)
 		self.process_callable = process_callable
 		self.v_rev_filename = v_rev_filename
-		self.v_rev_content = (v_rev_content.strip() + "\n").encode('utf-8', 'ignore')
+		self.v_rev_content = (v_rev_content.strip() + "\n").encode("utf-8", "ignore")
 		self.v_rev_stat = make_sftp_attr(v_rev_filename, self.v_rev_content)
 		self.rsync_opts = rsync_opts
 		self._users_lck = _thread.allocate_lock()
@@ -324,7 +333,7 @@ class ServerImpl(paramiko.ServerInterface):
 			remote_username = transport.auth_handler.get_username()
 		except Exception:
 			_log.exception("cannot reach username for user lookup")
-			return (None, '?')
+			return (None, "?")
 		return (self.lookup_user_via_name(remote_username), remote_username)
 
 	def _run_command(self, channel: paramiko.Channel, command: bytes) -> bool:
@@ -332,23 +341,25 @@ class ServerImpl(paramiko.ServerInterface):
 		if not u:
 			_log.warning("cannot reach user [%r] for command: %r", remote_username, command)
 			return False
-		cmdpart = list(filter(None, command.decode(encoding='utf-8').split(' ')))
+		cmdpart = list(filter(None, command.decode(encoding="utf-8").split(" ")))
 		if len(cmdpart) < 2:
-			raise Exception('low argument count', cmdpart)
+			raise Exception("low argument count", cmdpart)
 		cmdtarget = cmdpart[0]
 		_log.info("run: [%s] as [%r]", cmdtarget, remote_username)
 		user_folder_path = u.get_user_folder_path(self.base_folder_path)
 		report_callable = _ReportCallableWrap(channel, u, self.process_callable)
-		if cmdtarget in ('rsync', '/bin/rsync', '/usr/bin/rsync'):
+		if cmdtarget in ("rsync", "/bin/rsync", "/usr/bin/rsync"):
 			if self.rsync_opts:
-				_thread.start_new_thread(run_rsync_exec, (remote_username, user_folder_path, report_callable, channel, cmdpart, self.rsync_opts))
+				_thread.start_new_thread(
+					run_rsync_exec, (remote_username, user_folder_path, report_callable, channel, cmdpart, self.rsync_opts)
+				)
 			else:
 				_log.warning("requested rsync but rsync executable path is not configurated")
 				return False
-		elif cmdtarget in ('scp', '/bin/scp', '/usr/bin/scp'):
+		elif cmdtarget in ("scp", "/bin/scp", "/usr/bin/scp"):
 			_thread.start_new_thread(run_scp_sink, (user_folder_path, report_callable, channel, cmdpart))
 		else:
-			raise Exception('unknown command', cmdtarget, command)
+			raise Exception("unknown command", cmdtarget, command)
 		return True
 
 	def check_auth_password(self, username, password):
@@ -388,7 +399,7 @@ class ServerImpl(paramiko.ServerInterface):
 		try:
 			return self._run_command(channel, command)
 		except Exception:
-			_log.exception('cannot invoke command')
+			_log.exception("cannot invoke command")
 		return False
 
 
@@ -397,7 +408,7 @@ class SSHLinkHandler(socketserver.BaseRequestHandler):
 		_log.info("connected: %r", self.client_address)
 		transport = paramiko.Transport(self.request)
 		transport.add_server_key(self.server.host_pkey)
-		transport.set_subsystem_handler('sftp', paramiko.SFTPServer, SFTPServerImpl, transport)
+		transport.set_subsystem_handler("sftp", paramiko.SFTPServer, SFTPServerImpl, transport)
 		transport.start_server(server=self.server.server_impl)
 		ch = transport.accept()
 		_log.debug("channel open: %r", ch)
@@ -408,22 +419,24 @@ class SSHLinkHandler(socketserver.BaseRequestHandler):
 
 class SFTPServer(socketserver.ForkingTCPServer):
 	__slots__ = (
-			'host_pkey',
-			'server_impl',
+		"host_pkey",
+		"server_impl",
 	)
 
 	# pylint: disable=too-many-arguments
-	def __init__(self,
-					server_host: str,
-					server_port: int,
-					key_file_path: str,
-					key_bits: int,
-					base_folder_path: str,
-					users: Iterable[User],
-					process_callable: Callable[[str, str, str, str], None],
-					v_rev_filename: str = DEFAULT_REV_FILENAME,
-					v_rev_content: str = DEFAULT_REV_CONTENT,
-					rsync_opts: Optional[RsyncOptions] = None) -> None:
+	def __init__(
+		self,
+		server_host: str,
+		server_port: int,
+		key_file_path: str,
+		key_bits: int,
+		base_folder_path: str,
+		users: Iterable[User],
+		process_callable: Callable[[str, str, str, str], None],
+		v_rev_filename: str = DEFAULT_REV_FILENAME,
+		v_rev_content: str = DEFAULT_REV_CONTENT,
+		rsync_opts: Optional[RsyncOptions] = None,
+	) -> None:
 		super().__init__((server_host, server_port), SSHLinkHandler)
 		try:
 			self.host_pkey = paramiko.RSAKey.from_private_key_file(key_file_path)
