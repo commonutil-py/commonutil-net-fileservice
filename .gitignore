@@ -17,3 +17,4 @@ rt-sandbox/**
 *.egg-info/**
 dist/**
 _rev-info.txt
+.mypy.ini
