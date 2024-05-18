@@ -5,7 +5,7 @@ Configuration data classes
 
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, Optional
+from typing import Any, Callable, ClassVar, Dict, Iterable, Optional
 import logging
 import os
 
@@ -48,7 +48,7 @@ class User:
 			'_user_folder_path',
 	)
 
-	credential_checker: Callable[[User, str], bool] = _default_credential_checker
+	credential_checker: ClassVar[Callable[[User, str], bool]] = _default_credential_checker
 
 	# pylint: disable=too-many-arguments
 	def __init__(
@@ -102,7 +102,7 @@ class User:
 			os.makedirs(target_path, exist_ok=True)
 
 
-def make_users_map(users: Iterable[User]) -> Mapping[str, User]:
+def make_users_map(users: Iterable[User]) -> Dict[str, User]:
 	result = {}
 	for u in users:
 		result[u.username] = u
