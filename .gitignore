@@ -1,5 +1,6 @@
 .DS_Store
 __pycache__
+.mypy_cache
 *.pyc
 *~
 .*.swp
@@ -17,4 +18,3 @@ rt-sandbox/**
 *.egg-info/**
 dist/**
 _rev-info.txt
-.mypy.ini
