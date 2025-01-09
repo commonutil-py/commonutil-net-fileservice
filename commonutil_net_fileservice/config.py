@@ -11,7 +11,7 @@ import os
 
 _log = logging.getLogger(__name__)
 
-_REV = "0.1.8; a39b234ad16cc54de1121b95124170fbc3448fb5"  # REV-CONSTANT:full 5d022db7d38f580a850cd995e26a6c2f
+_REV = "0.1.9; 32493f9cd35289f2073276a433e5a2fa843f77b2"  # REV-CONSTANT:full 5d022db7d38f580a850cd995e26a6c2f
 
 DEFAULT_REV_FILENAME = "_rev-info.txt"
 DEFAULT_REV_CONTENT = _REV + "\n"

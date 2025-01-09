@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "commonutil-net-fileservice"
-version = "0.1.8" # REV-CONSTANT:rev 5d022db7d38f580a850cd995e26a6c2f
+version = "0.1.9"	# REV-CONSTANT:rev 5d022db7d38f580a850cd995e26a6c2f
 description = "Helper routine for file service"
 readme = "README.md"
 requires-python = ">= 3.8"
