@@ -5,7 +5,7 @@ Adapter code for paramiko
 
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Sequence, Tuple
 import _thread
 import logging
 import multiprocessing
@@ -31,15 +31,15 @@ def stream_exec_stdin(channel: paramiko.Channel, pobj: subprocess.Popen):
 			buf = channel.recv(2048)
 			s = len(buf)
 			if s == 0:
-				pobj.stdin.close()
+				pobj.stdin.close()  # type: ignore
 				_log.debug("stdin streamed %d/%d bytes", streamed_bytes, loaded_bytes)
 				return
 			loaded_bytes = loaded_bytes + s
-			pobj.stdin.write(buf)
+			pobj.stdin.write(buf)  # type: ignore
 			streamed_bytes = streamed_bytes + s
 	except Exception:
 		_log.exception("cannot stream stdin data (streamed %d/%d bytes)", streamed_bytes, loaded_bytes)
-		pobj.stdin.close()
+		pobj.stdin.close()  # type: ignore
 
 
 def stream_exec_stdout(channel: paramiko.Channel, pobj: subprocess.Popen):
@@ -47,7 +47,7 @@ def stream_exec_stdout(channel: paramiko.Channel, pobj: subprocess.Popen):
 	streamed_bytes = 0
 	try:
 		while True:
-			buf = pobj.stdout.read(2048)
+			buf = pobj.stdout.read(2048)  # type: ignore
 			s = len(buf)
 			if s == 0:
 				_log.debug("stdout streamed %d/%d bytes", streamed_bytes, loaded_bytes)
@@ -64,7 +64,7 @@ def stream_exec_stderr(channel: paramiko.Channel, pobj: subprocess.Popen):
 	streamed_bytes = 0
 	try:
 		while True:
-			buf = pobj.stderr.read(2048)
+			buf = pobj.stderr.read(2048)  # type: ignore
 			s = len(buf)
 			if s == 0:
 				return
@@ -113,7 +113,8 @@ class RsyncOptions:
 	def _fetch_state_invoke(self, q: multiprocessing.Queue, remote_username: str, folder_path: str) -> None:
 		f_callable = self.fetch_state_callable
 		try:
-			result = f_callable(remote_username, folder_path)
+			# just raise exception if f_callable is None
+			result = f_callable(remote_username, folder_path)  # type: ignore
 			if not result:
 				result = ""
 		except Exception:
@@ -124,7 +125,7 @@ class RsyncOptions:
 	def run_fetch_state(self, remote_username: str, folder_path: str) -> str:
 		if not self.fetch_state_callable:
 			return ""
-		q = multiprocessing.Queue(1)
+		q = multiprocessing.Queue(1)  # type: ignore
 		p = multiprocessing.Process(target=self._fetch_state_invoke, args=(q, remote_username, folder_path))
 		p.start()
 		p.join(self.invoke_timeout)
@@ -142,7 +143,8 @@ class RsyncOptions:
 	def _save_state_invoke(self, remote_username: str, folder_path: str, state_text: str) -> None:
 		f_callable = self.save_state_callable
 		try:
-			f_callable(remote_username, folder_path, state_text)
+			# just raise exception if f_callable is None
+			f_callable(remote_username, folder_path, state_text)  # type: ignore
 		except Exception:
 			_log.exception("run save_state_callable for %r [%r] failed", remote_username, folder_path)
 
@@ -193,7 +195,7 @@ def _scan_latest_mtime(target_folder_path: str) -> int:
 	return latest_mtime
 
 
-def _check_updated_mtime(target_folder_path: str, prev_latest_mtime: int) -> Tuple[int, Iterable[str]]:
+def _check_updated_mtime(target_folder_path: str, prev_latest_mtime: int) -> Tuple[int, Sequence[str]]:
 	if not os.path.isdir(target_folder_path):
 		return (0, [])  # we do not support this scenario
 	start_at = time.time()
@@ -224,7 +226,7 @@ def _report_changed_paths(
 	remote_username: str,
 	user_folder_path: str,
 	report_callable: Callable,
-	changed_paths: Iterable[str],
+	changed_paths: Sequence[str],
 	rsync_opts: RsyncOptions,
 ):
 	if len(changed_paths) == 0:
@@ -299,7 +301,7 @@ class _SCPResponseCallable:
 		self.channel.sendall(b"\x01" + message_text.encode(encoding="utf-8") + b"\n")
 
 
-def run_scp_sink(user_folder_path: str, report_callable: Callable, channel: paramiko.Channel, cmdpart: Iterable):
+def run_scp_sink(user_folder_path: str, report_callable: Callable, channel: paramiko.Channel, cmdpart: Sequence[str]):
 	_log.debug("scp command: %r", cmdpart)
 	_abs_target_path, target_path = rewrite_target_path(user_folder_path, cmdpart[-1])
 	streamed_bytes = 0

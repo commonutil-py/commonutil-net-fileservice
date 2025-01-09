@@ -439,5 +439,5 @@ def setup_handlers(
 	if ftp_public_address:
 		ftp_hnd.masquerade_address = ftp_public_address
 	ftp_hnd.permit_foreign_addresses = True
-	ftp_hnd.process_callable = process_callable
-	return (ftp_hnd, auth_hnd)
+	ftp_hnd.process_callable = process_callable  # type: ignore
+	return (ftp_hnd, auth_hnd)  # type: ignore

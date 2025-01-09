@@ -36,9 +36,13 @@ def _fp_opener(path, flags):
 	return os.open(path, flags, 0o644)
 
 
-def _remote_location_from_transport(transport: paramiko.Transport) -> str:
+def _remote_location_from_transport(transport: Optional[paramiko.Transport]) -> str:
+	"""
+	Extract remote location from transport object
+	The tranport should not be None. Mark as optional for easier integrating with paramiko's channel.transport properties.
+	"""
 	try:
-		remote_addr, remote_port = transport.getpeername()
+		remote_addr, remote_port = transport.getpeername()  # type: ignore
 		return f"{remote_addr}:{remote_port}"
 	except Exception as e:
 		return f"exception:{e!r}"
@@ -330,14 +334,14 @@ class ServerImpl(paramiko.ServerInterface):
 
 	def lookup_user_via_transport(self, transport: paramiko.Transport) -> Tuple[Optional[User], str]:
 		try:
-			remote_username = transport.auth_handler.get_username()
+			remote_username = transport.auth_handler.get_username()  # type: ignore
 		except Exception:
 			_log.exception("cannot reach username for user lookup")
 			return (None, "?")
-		return (self.lookup_user_via_name(remote_username), remote_username)
+		return (self.lookup_user_via_name(remote_username), remote_username) if remote_username else (None, "?empty?")
 
 	def _run_command(self, channel: paramiko.Channel, command: bytes) -> bool:
-		u, remote_username = self.lookup_user_via_transport(channel.transport)
+		u, remote_username = self.lookup_user_via_transport(channel.transport)  # type: ignore
 		if not u:
 			_log.warning("cannot reach user [%r] for command: %r", remote_username, command)
 			return False
@@ -407,6 +411,7 @@ class SSHLinkHandler(socketserver.BaseRequestHandler):
 	def handle(self):
 		_log.info("connected: %r", self.client_address)
 		transport = paramiko.Transport(self.request)
+		transport.load_server_moduli(self.server.moduli_path)
 		transport.add_server_key(self.server.host_pkey)
 		transport.set_subsystem_handler("sftp", paramiko.SFTPServer, SFTPServerImpl, transport)
 		transport.start_server(server=self.server.server_impl)
@@ -420,6 +425,7 @@ class SSHLinkHandler(socketserver.BaseRequestHandler):
 class SFTPServer(socketserver.ForkingTCPServer):
 	__slots__ = (
 		"host_pkey",
+		"moduli_path",
 		"server_impl",
 	)
 
@@ -436,6 +442,7 @@ class SFTPServer(socketserver.ForkingTCPServer):
 		v_rev_filename: str = DEFAULT_REV_FILENAME,
 		v_rev_content: str = DEFAULT_REV_CONTENT,
 		rsync_opts: Optional[RsyncOptions] = None,
+		moduli_path: Optional[str] = None,
 	) -> None:
 		super().__init__((server_host, server_port), SSHLinkHandler)
 		try:
@@ -443,6 +450,7 @@ class SFTPServer(socketserver.ForkingTCPServer):
 		except FileNotFoundError:
 			self.host_pkey = paramiko.RSAKey.generate(key_bits)
 			self.host_pkey.write_private_key_file(key_file_path)
+		self.moduli_path = moduli_path
 		self.server_impl = ServerImpl(base_folder_path, users, process_callable, v_rev_filename, v_rev_content, rsync_opts)
 
 	def update_users(self, users: Iterable[User]):
