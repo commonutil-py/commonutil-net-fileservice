@@ -3,10 +3,10 @@
 Example code for setting up FTP service with pyftpdlib
 """
 
-import sys
-import os
 import getopt
 import logging
+import os
+import sys
 
 from commonutil_net_fileservice.paramikosftp import SFTPServer
 
@@ -29,6 +29,7 @@ def parse_options(argv):
 	sftp_port = 2222
 	base_folder_path = "/tmp/common-net-paramikosftpd-example"
 	host_key_path = os.path.abspath("examples/host.key")
+	moduli_path = os.path.abspath("examples/moduli")
 	try:
 		opts, _args = getopt.getopt(
 			argv,
@@ -36,7 +37,9 @@ def parse_options(argv):
 			(
 				"port=",
 				"base-folder=",
-				"host-key=" "help",
+				"host-key=",
+				"moduli=",
+				"help",
 			),
 		)
 		for opt, arg in opts:
@@ -51,6 +54,11 @@ def parse_options(argv):
 				base_folder_path = os.path.abspath(arg)
 			elif opt == "--host-key":
 				host_key_path = os.path.abspath(arg)
+			elif opt == "--moduli":
+				if arg:
+					moduli_path = os.path.abspath(arg)
+				else:
+					moduli_path = None
 	except Exception:
 		_log.exception("failed on parsing CLI options")
 	if not base_folder_path:
@@ -60,18 +68,21 @@ def parse_options(argv):
 		sftp_port,
 		base_folder_path,
 		host_key_path,
+		moduli_path,
 	)
 
 
 def main():
 	log_level = logging.INFO if ("-v" not in sys.argv) else logging.DEBUG
 	logging.basicConfig(stream=sys.stderr, level=log_level)
-	sftp_port, base_folder_path, host_key_path = parse_options(sys.argv[1:])
+	sftp_port, base_folder_path, host_key_path, moduli_path = parse_options(sys.argv[1:])
 	user_cfgs = make_example_users()
 	for u in user_cfgs:
 		u.prepare_user_folders(base_folder_path)
 	SFTPServer.allow_reuse_address = True
-	server = SFTPServer("", sftp_port, host_key_path, 4096, base_folder_path, user_cfgs, process_callable)
+	server = SFTPServer(
+		"", sftp_port, host_key_path, 4096, base_folder_path, user_cfgs, process_callable, moduli_path=moduli_path
+	)
 	with server:
 		_log.info("listen on %r", server.server_address)
 		server.serve_forever()
